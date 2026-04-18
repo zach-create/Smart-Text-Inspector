@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Text Inspector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      width: 380px;
+      min-height: 200px;
+      background: #fff;
+      color: #2C2C2A;
+      font-size: 13px;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #3C3489 0%, #534AB7 100%);
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-icon { font-size: 20px; }
+    .header-title { font-size: 14px; font-weight: 600; color: #fff; }
+    .header-sub   { font-size: 10px; color: rgba(255,255,255,0.65); margin-top: 1px; }
+
+    .rescan-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 11px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .rescan-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── Summary cards ── */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid #F1EFE8;
+    }
+    .sum-card {
+      text-align: center;
+      padding: 10px 4px;
+      border-right: 1px solid #F1EFE8;
+    }
+    .sum-card:last-child { border-right: none; }
+    .sum-num   { font-size: 22px; font-weight: 700; line-height: 1; }
+    .sum-label { font-size: 9px; color: #B4B2A9; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .sum-num.human  { color: #0F6E56; }
+    .sum-num.ai     { color: #A32D2D; }
+    .sum-num.mixed  { color: #854F0B; }
+    .sum-num.pasted { color: #185FA5; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #F1EFE8;
+      background: #FAFAF9;
+    }
+    .tab {
+      flex: 1;
+      padding: 9px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #888780;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .tab.active { color: #534AB7; border-bottom-color: #534AB7; background: #fff; }
+    .tab:hover:not(.active) { color: #444441; }
+
+    /* ── List ── */
+    .list { max-height: 360px; overflow-y: auto; }
+
+    .item {
+      padding: 10px 14px;
+      border-bottom: 1px solid #F1EFE8;
+      transition: background 0.1s;
+    }
+    .item:last-child { border-bottom: none; }
+
+    .item-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .pill {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .pill.human  { background: #E1F5EE; color: #085041; }
+    .pill.ai     { background: #FCEBEB; color: #501313; }
+    .pill.mixed  { background: #FAEEDA; color: #412402; }
+    .pill.pasted { background: #E6F1FB; color: #185FA5; }
+    .pill.typed  { background: #E1F5EE; color: #085041; }
+    .pill.unclear{ background: #F1EFE8; color: #444441; }
+
+    .item-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #444441;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .item-conf {
+      font-size: 10px;
+      color: #B4B2A9;
+      flex-shrink: 0;
+    }
+
+    .excerpt {
+      font-size: 11px;
+      color: #888780;
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 6px;
+    }
+
+    .signals { display: flex; flex-wrap: wrap; gap: 4px; }
+    .signal {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 8px;
+      border-left: 2px solid transparent;
+      background: #F8F8F6;
+      color: #5F5E5A;
+      line-height: 1.4;
+    }
+    .signal.ai     { border-color: #E24B4A; }
+    .signal.pasted { border-color: #378ADD; }
+    .signal.human, .signal.typed { border-color: #1D9E75; }
+
+    /* ── Empty / loading states ── */
+    .state-box {
+      padding: 28px 20px;
+      text-align: center;
+      color: #B4B2A9;
+    }
+    .state-icon { font-size: 28px; margin-bottom: 8px; }
+    .state-text { font-size: 12px; line-height: 1.5; }
+
+    .spinner {
+      width: 22px; height: 22px;
+      border: 2px solid #EEEDFE;
+      border-top-color: #534AB7;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 7px 14px;
+      border-top: 1px solid #F1EFE8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .local-tag {
+      font-size: 10px;
+      color: #0F6E56;
+      background: #E1F5EE;
+      padding: 2px 7px;
+      border-radius: 8px;
+    }
+    .toggle-row { display: flex; align-items: center; gap: 6px; }
+    .toggle-label { font-size: 10px; color: #888780; }
+    .toggle {
+      width: 32px; height: 18px;
+      background: #D3D1C7; border-radius: 9px;
+      cursor: pointer; position: relative; transition: background 0.2s;
+    }
+    .toggle.on { background: #534AB7; }
+    .toggle::after {
+      content:""; position:absolute;
+      width:14px; height:14px; border-radius:50%;
+      background:#fff; top:2px; left:2px; transition:left 0.2s;
+    }
+    .toggle.on::after { left:16px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">🔍</div>
+      <div>
+        <div class="header-title">Text Inspector</div>
+        <div class="header-sub">AI · Human · Copy-paste detection</div>
+      </div>
+    </div>
+    <button class="rescan-btn" id="rescanBtn">↻ Re-scan</button>
+  </div>
+
+  <div class="summary" id="summary">
+    <div class="sum-card"><div class="sum-num human" id="cHuman">–</div><div class="sum-label">Human</div></div>
+    <div class="sum-card"><div class="sum-num ai"    id="cAI">–</div><div class="sum-label">AI-written</div></div>
+    <div class="sum-card"><div class="sum-num mixed" id="cMixed">–</div><div class="sum-label">Mixed</div></div>
+    <div class="sum-card"><div class="sum-num pasted" id="cPasted">–</div><div class="sum-label">Pasted fields</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="text">📄 Page Text <span id="tTextCount"></span></div>
+    <div class="tab" data-tab="fields">📝 Form Fields <span id="tFieldCount"></span></div>
+  </div>
+
+  <div class="list" id="list">
+    <div class="state-box">
+      <div class="spinner"></div>
+      <div class="state-text">Scanning page…</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="local-tag">100% local · no data sent</span>
+    <div class="toggle-row">
+      <span class="toggle-label">Active</span>
+      <div class="toggle on" id="toggle"></div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
