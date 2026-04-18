@@ -3,6 +3,8 @@
 Detects whether form fields were **typed** or **pasted** or **AI** using behavioral analysis.
 
 ---
+This tool helps HR teams determine whether a form has been written by a human or generated using AI and then modified before submission. It analyzes patterns to detect such manipulations, ensuring that companies receive genuinely human-written applications.
+Like the Extension detects this is also written by AI ;-)
 
 ## How it works
 
