@@ -1,4 +1,4 @@
-# Form Guard AI — Chrome Extension
+# Form Guard AI  —  Chrome Extension
 
 
 Detects whether form fields were **typed** or **pasted** or **AI** using behavioral analysis.
